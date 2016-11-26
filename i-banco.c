@@ -11,6 +11,7 @@ s Sistemas Operativos, DEI/IST/ULisboa 2016-17
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <fcntl.h>
@@ -19,9 +20,9 @@ s Sistemas Operativos, DEI/IST/ULisboa 2016-17
 
 int main (int argc, char** argv) {
 
-    char *args[MAXARGS + 1];
-    char buffer[BUFFER_SIZE];
-    int i;
+    int i, cmdpipe_fd, answerpipe_fd;
+    char *cmdpipe = "/tmp/i-banco-pipe";
+    char *answerpipe = "/tmp/i-banco-answer";
 
     inicializarContas();
 
@@ -60,32 +61,62 @@ int main (int argc, char** argv) {
           exit(EXIT_FAILURE);
         }
     }
-
-    printf("Bem-vinda/o ao i-banco\n\n");
-
+    printf("save5\n");
+    printf("Bem-vindo ao i-banco\n\n");
+    printf("save6\n");
     /* Initialize logfile */
-
     if(!(logfile = fopen("logfile.txt", "w"))){
       perror("Could not create logfile.txt.\n");
+    }
+    /* Initialize pipes */
+    printf("save4\n");
+    unlink(cmdpipe);
+    if(mkfifo(cmdpipe, 0777)){
+      perror("Could not create cmdpipe.");
+    }
+    printf("saveanswerpipe\n");
+    unlink(answerpipe);
+    if(mkfifo(answerpipe, 0777)){
+      perror("Could not create answerpipe.")
     }
 
     /* printf("PPID = %d\n", getpid());  DEBUG PRINT */
 
     while (1) {
-        int numargs, status;
+        int status;
+        comando_t cmd;
         pid_t pid;
-        numargs = readLineArguments(args, MAXARGS+1, buffer, BUFFER_SIZE);
+        printf("save3\n");
+        cmdpipe_fd = open(cmdpipe, O_RDONLY, S_IWUSR | S_IRUSR);
+        printf("save1\n");
+        read(cmdpipe_fd, &cmd, sizeof(comando_t));
+        printf("save9\n");
+        close(cmdpipe_fd);
+        printf("save2\n");
+        writecmd(cmd);
+
+        answerpipe_fd = open(answerpipe, O_WRONLY, S_IWUSR | S_IRUSR);
+
         /* EOF (end of file) do stdin ou comando "sair" */
-        if (numargs < 0 ||
-	        (numargs > 0 && (strcmp(args[0], COMANDO_SAIR) == 0)) || sigtermflag) {
+        if (cmd.operacao == OP_SIMULAR){
+          printf("nunogay\n");
+          pthread_mutex_lock(&bufferMutex);
+          while(numCommands){ pthread_cond_wait(&podeSimular, &bufferMutex); }
+          printf ("dog\n");
+          simular(cmd.valor);
+          printf("fixe\n");
+          pthread_mutex_unlock(&bufferMutex);
+          printf("estupido\n");
+        }
+        if (cmd.operacao == OP_SAIR) {
             sairflag = 1;
-            if(numargs == 2 && (strcmp(args[1], COMANDO_SAIR_AGORA) == 0)){
+            if(cmd.idContaDestino == 1){
               kill(0, SIGUSR1);
             }
             printf("i-banco vai terminar.\n--\n");
             /* Send end command to threads and wait for them to end*/
             for (i=0; i<NUM_TRABALHADORAS;i++){
-              writeCommand(OP_SAIR,-1,-1,-1);
+               writecmd(cmd);
             }
             for(i=0;i<NUM_TRABALHADORAS;i++){
               if(pthread_join(tid[i],NULL)){
@@ -107,98 +138,25 @@ int main (int argc, char** argv) {
             fclose(logfile);
             exit(EXIT_SUCCESS);
         }
-
-        else if (numargs == 0)
-            /* Nenhum argumento; e volta a pedir */
-            continue;
-
-        /* Debitar */
-        else if (strcmp(args[0], COMANDO_DEBITAR) == 0) {
-          int idConta, valor;
-            if (numargs < 3) {
-                printf("%s: Sintaxe inválida, tente de novo.\n", COMANDO_DEBITAR);
-	           continue;
-            }
-            idConta = atoi(args[1]);
-            valor = atoi(args[2]);
-            writeCommand(OP_DEBITAR,idConta,-1,valor);
-
-       }
-
-       /* Creditar */
-       else if (strcmp(args[0], COMANDO_CREDITAR) == 0) {
-        int idConta, valor;
-        if (numargs < 3) {
-          printf("%s: Sintaxe inválida, tente de novo.\n", COMANDO_CREDITAR);
-          continue;
-        }
-
-        idConta = atoi(args[1]);
-        valor = atoi(args[2]);
-        writeCommand(OP_CREDITAR, idConta,-1, valor);
-      }
-        /* Ler Saldo */
-        else if (strcmp(args[0], COMANDO_LER_SALDO) == 0) {
-          int idConta;
-
-          if (numargs < 2) {
-            printf("%s: Sintaxe inválida, tente de novo.\n", COMANDO_LER_SALDO);
-            continue;
-          }
-
-          idConta = atoi(args[1]);
-          writeCommand(OP_LER_SALDO, idConta,-1, -1);
-
-        }
-        else if (strcmp(args[0], COMANDO_TRANSFERIR) == 0) {
-          int idContaOrigem,idContaDestino, valor;
-          if (numargs < 4) {
-            printf("%s: Sintaxe inválida, tente de novo.\n", COMANDO_TRANSFERIR);
-            continue;
-          }
-
-          idContaOrigem = atoi(args[1]);
-          idContaDestino = atoi(args[2]);
-          valor = atoi(args[3]);
-          writeCommand(OP_TRANSFERIR, idContaOrigem,idContaDestino, valor);
-        }
-        /* Simular */
-        else if (strcmp(args[0], COMANDO_SIMULAR) == 0) {
-          int anos;
-          if (numargs < 2) {
-            printf("%s: Sintaxe inválida, tente de novo.\n", COMANDO_SIMULAR);
-            continue;
-          }
-          anos = atoi(args[1]);
-          pthread_mutex_lock(&bufferMutex);
-          while(numCommands){ pthread_cond_wait(&podeSimular,&bufferMutex);}
-          simular(anos);
-          pthread_mutex_unlock(&bufferMutex);
-        }
-
-        else {
-          printf("Comando desconhecido. Tente de novo.\n");
-        }
     }
 }
 
 /* Handler function for SIGUSR1 */
 void sigusr1Handler(){
   sigusr1flag = 1;
+  printf("OLA");
   signal(SIGUSR1, sigusr1Handler);
 }
 
 
 /* Write the command that was read from stdin to cmd_buffer */
-void writeCommand(int operacao, int idConta,int idContaDestino, int valor){
+void writecmd(comando_t cmd){
+  printf("save8\n");
   if(sem_wait(&tooManyCommands)){
     perror("Could not wait semaphore 'tooManyCommands'. \n");
   }
   pthread_mutex_lock(&bufferMutex);
-  (cmd_buffer[buff_write_idx]).operacao = operacao;
-  (cmd_buffer[buff_write_idx]).idConta = idConta;
-  (cmd_buffer[buff_write_idx]).idContaDestino = idContaDestino;
-  (cmd_buffer[buff_write_idx]).valor = valor;
+  cmd_buffer[buff_write_idx]= cmd;
   buff_write_idx = (buff_write_idx + 1) % CMD_BUFFER_DIM;
   numCommands++;
   pthread_mutex_unlock(&bufferMutex);
@@ -225,47 +183,52 @@ int readCommand(){
   pthread_mutex_unlock(&bufferMutex);
   switch(tempCommand.operacao){
     int saldo;
+    char message[50];
     case OP_DEBITAR :
       if (debitar (tempCommand.idConta, tempCommand.valor) < 0)
-        printf("%s(%d, %d): Erro\n\n", COMANDO_DEBITAR, tempCommand.idConta,
+        sprintf(message, "%s(%d, %d): Erro\n\n", COMANDO_DEBITAR, tempCommand.idConta,
               tempCommand.valor);
       else
-        printf("%s(%d, %d): OK\n\n", COMANDO_DEBITAR, tempCommand.idConta,
+        sprintf(message, "%s(%d, %d): OK\n\n", COMANDO_DEBITAR, tempCommand.idConta,
               tempCommand.valor);
+      write(answerpipe_fd, message, sizeof(char)*strlen(message));
       break;
 
     case OP_CREDITAR :
       if (creditar (tempCommand.idConta, tempCommand.valor) < 0)
-        printf("%s(%d, %d): Erro\n\n", COMANDO_CREDITAR, tempCommand.idConta,
+        sprintf(message, "%s(%d, %d): Erro\n\n", COMANDO_CREDITAR, tempCommand.idConta,
               tempCommand.valor);
       else
-        printf("%s(%d, %d): OK\n\n", COMANDO_CREDITAR, tempCommand.idConta,
+        sprintf(message, "%s(%d, %d): OK\n\n", COMANDO_CREDITAR, tempCommand.idConta,
               tempCommand.valor);
+      write(answerpipe_fd, message, sizeof(char)*strlen(message));
       break;
 
     case OP_LER_SALDO :
       saldo = lerSaldo(tempCommand.idConta);
       if (saldo < 0)
-        printf("%s(%d): Erro.\n\n", COMANDO_LER_SALDO, tempCommand.idConta);
+        sprintf(message, "%s(%d): Erro.\n\n", COMANDO_LER_SALDO, tempCommand.idConta);
       else
-        printf("%s(%d): O saldo da conta é %d.\n\n", COMANDO_LER_SALDO,
+        sprintf(message, "%s(%d): O saldo da conta é %d.\n\n", COMANDO_LER_SALDO,
               tempCommand.idConta, saldo);
+      write(answerpipe_fd, message, sizeof(char)*strlen(message));
       break;
 
     case OP_TRANSFERIR:
       if (transferir (tempCommand.idConta,tempCommand.idContaDestino, tempCommand.valor) < 0)
-        printf("%s(%d, %d, %d): Erro\n\n", COMANDO_TRANSFERIR, tempCommand.idConta,
+        sprintf(message, "%s(%d, %d, %d): Erro\n\n", COMANDO_TRANSFERIR, tempCommand.idConta,
               tempCommand.idContaDestino,tempCommand.valor);
       else
-        printf("%s(%d, %d, %d): OK\n\n", COMANDO_TRANSFERIR, tempCommand.idConta,
+        sprintf(message, "%s(%d, %d, %d): OK\n\n", COMANDO_TRANSFERIR, tempCommand.idConta,
               tempCommand.idContaDestino,tempCommand.valor);
+      write(answerpipe_fd, message, sizeof(char)*strlen(message));
       break;
-
     case OP_SAIR :
       // fprintf(logfile, "%lu: %s\n", pthread_self(), COMANDO_SAIR);
       return 1;
       break;
   }
+  close(answerpipe_fd);
   pthread_mutex_lock(&bufferMutex);
   numCommands--;
   pthread_cond_signal(&podeSimular);

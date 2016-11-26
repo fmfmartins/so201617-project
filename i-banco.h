@@ -21,6 +21,7 @@
 #define OP_LER_SALDO 2
 #define OP_TRANSFERIR 3
 #define OP_SAIR 4
+#define OP_SIMULAR 5
 #define MAXARGS 4
 #define BUFFER_SIZE 100
 #define NUM_TRABALHADORAS 3 /* Number of threads in pool */
@@ -56,6 +57,7 @@ int main (int argc, char** argv);
 void sigusr1Handler();
 void sigtermHandler();
 void writeCommand(int operacao, int idConta,int idContaDestino, int valor);
+void writecmd(comando_t cmd);
 int readCommand();
 void* worker(); /* thread main handling function */
 
