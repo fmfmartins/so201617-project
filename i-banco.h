@@ -49,6 +49,9 @@ pthread_mutex_t bufferMutex; /* Mutex for cmd buffer */
 extern pthread_mutex_t accountsMutexes[];
 pthread_cond_t podeSimular;
 FILE* logfile;
+int cmdpipe_fd, answerpipe_fd;
+char *cmdpipe = "/tmp/i-banco-pipe";
+char *answerpipe = "/tmp/i-banco-answer";
 
 int sigusr1flag = 0; /* flag signal USR 1 global */
 int sigtermflag = 0; /* flag signal TERM global to i-banco */

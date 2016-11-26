@@ -15,13 +15,12 @@ int main(int argc, char** argv){
   char *args[MAXARGS + 1];
   char buffer[BUFFER_SIZE];
   int numargs;
-  char * cmdpipe = "/tmp/i-banco-pipe";
-
 
   /* Open pipe for write */
 
 while(1){
   cmdpipe_fd = open(cmdpipe, O_WRONLY, S_IRUSR | S_IWUSR);
+  printf("kek\n");
   numargs = readLineArguments(args, MAXARGS+1, buffer, BUFFER_SIZE);
   if (numargs == 0)
     /* Nenhum argumento; e volta a pedir */
@@ -97,27 +96,17 @@ while(1){
     writeCommand(OP_TRANSFERIR, idContaOrigem,idContaDestino, valor);
   }
 
-  /* Simular
-  else if (strcmp(args[0], COMANDO_SIMULAR) == 0) {
-    int anos;
-    if (numargs < 2) {
-      printf("%s: Sintaxe inválida, tente de novo.\n", COMANDO_SIMULAR);
-      continue;
-    }
-    anos = atoi(args[1]);
-    pthread_mutex_lock(&bufferMutex);
-    while(numCommands){ pthread_cond_wait(&podeSimular,&bufferMutex);}
-    simular(anos);
-    pthread_mutex_unlock(&bufferMutex);
-  } */
-
   else {
     printf("Comando desconhecido. Tente de novo.\n");
   }
+  printf("kek3\n");
+  answerpipe_fd = open(answerpipe, O_RDONLY, S_IRUSR | S_IWUSR);
+  printf("kek2\n");
+  read(answerpipe_fd, buf, BUFFER_SIZE);
+  printf(buf);
+  close(answerpipe_fd);
  }
 }
-
-
 
 
 

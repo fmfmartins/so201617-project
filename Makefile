@@ -25,10 +25,10 @@ run:
 runinput:
 	make && ./i-banco <input.txt
 
-terminator: commandlinereader.c commandlinereader.h
+terminal: commandlinereader.c commandlinereader.h
 	make
 	gcc -c $(CFLAGS) i-banco-terminal.c
 	make terminal1
-	echo SKYNET
+
 terminal1: i-banco-terminal.o commandlinereader.o
 	gcc $(CFLAGS) -o i-banco-terminal i-banco-terminal.o commandlinereader.o

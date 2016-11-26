@@ -1,3 +1,6 @@
+#ifndef I_BANCO_TERMINAL_H
+#define I_BANCO_TERMINAL_H
+
 #include "commandlinereader.h"
 #include <stdio.h>
 
@@ -30,5 +33,11 @@ typedef struct {
 } comando_t;
 
 int cmdpipe_fd;
+int answerpipe_fd;
+char *cmdpipe = "/tmp/i-banco-pipe";
+char *answerpipe = "/tmp/i-banco-answer";
+char buf[BUFFER_SIZE];
 
 void writeCommand(int operacao, int idConta,int idContaDestino, int valor);
+
+#endif

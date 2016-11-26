@@ -20,9 +20,7 @@ s Sistemas Operativos, DEI/IST/ULisboa 2016-17
 
 int main (int argc, char** argv) {
 
-    int i, cmdpipe_fd, answerpipe_fd;
-    char *cmdpipe = "/tmp/i-banco-pipe";
-    char *answerpipe = "/tmp/i-banco-answer";
+    int i;
 
     inicializarContas();
 
@@ -77,7 +75,7 @@ int main (int argc, char** argv) {
     printf("saveanswerpipe\n");
     unlink(answerpipe);
     if(mkfifo(answerpipe, 0777)){
-      perror("Could not create answerpipe.")
+      perror("Could not create answerpipe.");
     }
 
     /* printf("PPID = %d\n", getpid());  DEBUG PRINT */
@@ -95,11 +93,9 @@ int main (int argc, char** argv) {
         printf("save2\n");
         writecmd(cmd);
 
-        answerpipe_fd = open(answerpipe, O_WRONLY, S_IWUSR | S_IRUSR);
-
         /* EOF (end of file) do stdin ou comando "sair" */
         if (cmd.operacao == OP_SIMULAR){
-          printf("nunogay\n");
+          printf("kappa\n");
           pthread_mutex_lock(&bufferMutex);
           while(numCommands){ pthread_cond_wait(&podeSimular, &bufferMutex); }
           printf ("dog\n");
@@ -168,6 +164,8 @@ void writecmd(comando_t cmd){
 
 int readCommand(){
   comando_t tempCommand;
+  /* Open pipe so as to be able to send a message */
+  answerpipe_fd = open(answerpipe, O_WRONLY, S_IWUSR | S_IRUSR);
   /* waits for the buffer to have a command */
   if(sem_wait(&hasCommand)){
     perror("Could not wait semaphore 'hasCommand'. \n");
@@ -183,7 +181,7 @@ int readCommand(){
   pthread_mutex_unlock(&bufferMutex);
   switch(tempCommand.operacao){
     int saldo;
-    char message[50];
+    char message[BUFFER_SIZE];
     case OP_DEBITAR :
       if (debitar (tempCommand.idConta, tempCommand.valor) < 0)
         sprintf(message, "%s(%d, %d): Erro\n\n", COMANDO_DEBITAR, tempCommand.idConta,
