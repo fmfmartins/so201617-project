@@ -13,11 +13,13 @@
 #define TAXAJURO 0.1
 #define CUSTOMANUTENCAO 1
 #define MAX_NUM_FILHOS 20
-
 #define ATRASO 1
 
 extern int sigusr1flag;
 extern FILE* logfile;
+int contasSaldos[NUM_CONTAS];
+pthread_mutex_t accountsMutexes[NUM_CONTAS];
+pthread_mutex_t logMutex;
 
 
 void inicializarContas();

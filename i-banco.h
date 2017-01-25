@@ -22,18 +22,18 @@
 #define OP_TRANSFERIR 3
 #define OP_SAIR 4
 #define OP_SIMULAR 5
-#define MAXARGS 4
 #define BUFFER_SIZE 100
 #define NUM_TRABALHADORAS 3 /* Number of threads in pool */
 #define CMD_BUFFER_DIM (2 * NUM_TRABALHADORAS) /* command buffer size */
 
 
-/* Command */
+/* Command structure */
 typedef struct {
   int operacao;
   int idConta;
   int idContaDestino;
   int valor;
+  pid_t tpid;
 } comando_t;
 
 
@@ -47,18 +47,17 @@ int numCommands = 0; /* total waiting commands */
 sem_t hasCommand, tooManyCommands;
 pthread_mutex_t bufferMutex; /* Mutex for cmd buffer */
 extern pthread_mutex_t accountsMutexes[];
+extern pthread_mutex_t logMutex;
 pthread_cond_t podeSimular;
 FILE* logfile;
 int cmdpipe_fd, answerpipe_fd;
 char *cmdpipe = "/tmp/i-banco-pipe";
 char *answerpipe = "/tmp/i-banco-answer";
-
 int sigusr1flag = 0; /* flag signal USR 1 global */
-int sigtermflag = 0; /* flag signal TERM global to i-banco */
+
 
 int main (int argc, char** argv);
 void sigusr1Handler();
-void sigtermHandler();
 void writeCommand(int operacao, int idConta,int idContaDestino, int valor);
 void writecmd(comando_t cmd);
 int readCommand();

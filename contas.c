@@ -9,9 +9,7 @@
 
 #define atrasar() sleep(ATRASO)
 
-int contasSaldos[NUM_CONTAS];
 int forks = 0;
-pthread_mutex_t accountsMutexes[NUM_CONTAS];
 
 int contaExiste(int idConta) {
   return (idConta > 0 && idConta <= NUM_CONTAS);
@@ -33,8 +31,11 @@ int debitar(int idConta, int valor) {
     return -1;
   }
   contasSaldos[idConta - 1] -= valor;
-  fprintf(logfile, "%lu: debitar %d %d\n", pthread_self(), idConta, valor);
+
   pthread_mutex_unlock(&accountsMutexes[idConta - 1]);
+  pthread_mutex_lock(&logMutex);
+  fprintf(logfile, "%lu: debitar %d %d\n", pthread_self(), idConta, valor);
+  pthread_mutex_unlock(&logMutex);
   atrasar();
   return 0;
 }
@@ -45,8 +46,11 @@ int creditar(int idConta, int valor) {
     return -1;
   pthread_mutex_lock(&accountsMutexes[idConta - 1]);
   contasSaldos[idConta - 1] += valor;
-  fprintf(logfile, "%lu: creditar %d %d\n", pthread_self(), idConta, valor);
   pthread_mutex_unlock(&accountsMutexes[idConta - 1]);
+  pthread_mutex_lock(&logMutex);
+  fprintf(logfile, "%lu: creditar %d %d\n", pthread_self(), idConta, valor);
+  pthread_mutex_unlock(&logMutex);
+  atrasar();
   return 0;
 }
 
@@ -57,8 +61,10 @@ int lerSaldo(int idConta) {
     return -1;
   pthread_mutex_lock(&accountsMutexes[idConta - 1]);
   saldo = contasSaldos[idConta - 1];
-  fprintf(logfile, "%lu: lerSaldo %d\n", pthread_self(), idConta);
   pthread_mutex_unlock(&accountsMutexes[idConta - 1]);
+  pthread_mutex_lock(&logMutex);
+  fprintf(logfile, "%lu: lerSaldo %d\n", pthread_self(), idConta);
+  pthread_mutex_unlock(&logMutex);
   return saldo;
 }
 
@@ -88,15 +94,17 @@ int transferir(int idContaOrigem,int idContaDestino,int valor){
   else
     contasSaldos[idContaOrigem - 1] = contasSaldos[idContaOrigem - 1] - valor;
     contasSaldos[idContaDestino - 1] = contasSaldos[idContaDestino - 1] + valor;
-    fprintf(logfile, "%lu: transferir %d %d %d\n", pthread_self(),
-            idContaOrigem, idContaDestino, valor);
+
     pthread_mutex_unlock(&accountsMutexes[a-1]);
     pthread_mutex_unlock(&accountsMutexes[b-1]);
+    pthread_mutex_lock(&logMutex);
+    fprintf(logfile, "%lu: transferir %d %d %d\n", pthread_self(),
+            idContaOrigem, idContaDestino, valor);
+    pthread_mutex_unlock(&logMutex);
     return 0;
 }
 
 void simular(int numAnos) {
-  //FILE *sim = 0;
   int id, ano, saldonovo, saldoatual, diff;
   pid_t pid;
   fflush(logfile);
@@ -114,7 +122,7 @@ void simular(int numAnos) {
     sim_fd = open(simfilename, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
     dup2(sim_fd,1);
     fclose(logfile);
-  	for(ano=0; ano<=numAnos; ano++){
+    for(ano=0; ano <= numAnos; ano++){
       if(!sigusr1flag){
         printf("SIMULACAO: ANO %d\n==================\n", ano);
     		for(id=0; id<NUM_CONTAS; id++){
