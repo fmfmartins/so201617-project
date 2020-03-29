@@ -1,4 +1,14 @@
-# SO - iBanco
+# Operating Systems / Sistemas Operativos - iBanco
+
+Operating Systems 2016/17 course project.
+
+The goal of this project was to develop a program that enabled interaction with a bank application through several terminals.
+The project was split into four different phases, each depicted below (in portuguese).
+
+1. [Phase 1](../master/SO-enunciado-ex1-projeto-2016-17-v1.pdf)
+2. [Phase 2](../master/SO-enunciado-ex2-projeto-2016-17.pdf)
+3. [Phase 3](../master/SO-enunciado-ex3-projeto-2016-17.pdf)
+4. [Phase 4](../master/enunciado-ex4.pdf)
 
 Projeto da cadeira de Sistemas Operativos 2016/17.
 
